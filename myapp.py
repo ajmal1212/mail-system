@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
-from flask_mail import Mail, Message
+import smtplib
+from email.mime.text import MIMEText
+import os
 
 app = Flask(__name__)
 
@@ -16,11 +18,8 @@ def send_email(subject, sender, recipients, text_body):
     msg['From'] = sender
     msg['To'] = ", ".join(recipients)
     try:
-        if USE_TLS:
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-            server.starttls()
-        else:
-            server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
         server.sendmail(sender, recipients, msg.as_string())
         server.quit()
@@ -33,7 +32,7 @@ def send_email(subject, sender, recipients, text_body):
 def send_email_route():
     data = request.json
     subject = "Registration Confirmation"
-    sender = SMTP_USERNAME  # Use the configured SMTP username as sender
+    sender = SMTP_USERNAME  # Use the configured Gmail address as the sender
     recipients = [data['email']]
     text_body = f"Hello {data['name']},\n\nThank you for registering."
     success = send_email(subject, sender, recipients, text_body)
@@ -42,32 +41,6 @@ def send_email_route():
     else:
         return jsonify({'message': 'Failed to send email'}), 500
 
-
-def send_email(subject, sender, recipients, text_body):
-    msg = MIMEText(text_body)
-    msg['Subject'] = subject
-    msg['From'] = sender
-    msg['To'] = ", ".join(recipients)
-    try:
-        with smtplib.SMTP('localhost') as server:
-            server.sendmail(sender, recipients, msg.as_string())
-        return True
-    except Exception as e:
-        print(f"Failed to send email: {e}")
-        return False
-
-@app.route('/send_email', methods=['POST'])
-def send_email_route():
-    data = request.json
-    subject = "Registration Confirmation"
-    sender = "your-email@example.com"
-    recipients = [data['email']]
-    text_body = f"Hello {data['name']},\n\nThank you for registering."
-    success = send_email(subject, sender, recipients, text_body)
-    if success:
-        return jsonify({'message': 'Email sent successfully'}), 200
-    else:
-        return jsonify({'message': 'Failed to send email'}), 500
 
 # Configuration for Flask-Mail
 #app.config['MAIL_SERVER'] = 'smtp.gmail.com'
